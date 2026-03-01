@@ -15,6 +15,10 @@ namespace ps1g {
 		void render(GLFWwindow* window, Bus* bus);
 
 		std::function<void()> toggleCpuDebug;
+		std::function<bool()> enabledCpuDebug;
+
+		std::function<void()> toggleMemDebug;
+		std::function<bool()> enabledMemDebug;
 
 	private:
 		nfdchar_t* openFilePicker();

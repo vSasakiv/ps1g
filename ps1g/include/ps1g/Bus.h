@@ -21,6 +21,7 @@ namespace ps1g {
 		uint16_t readU16(uint32_t addr);
 		uint32_t readU32(uint32_t addr);
 		void loadBiosfromFile(const char* filename);
+		MIPSR3000A* cpu();
 
 	private:
 		static constexpr uint32_t kBiosOffset = 0x1FC00000;

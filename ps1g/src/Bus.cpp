@@ -21,6 +21,10 @@ namespace ps1g {
 		this->cpu_->step(*this);
 	}
 
+	MIPSR3000A* Bus::cpu() {
+		return this->cpu_;
+	}
+
 	void Bus::writeU8(uint32_t addr, uint8_t data) {
 		MemoryRegion region = this->getMemoryRegion(addr);
 		uint32_t effective_addr = this->getEffectiveAddress(addr, region);

@@ -1,9 +1,4 @@
-﻿# CMakeList.txt: progetto CMake per ps1g. Includere l'origine e definire
-# qui la logica specifica del progetto.
-#
-
-# Aggiungere l'origine all'eseguibile di questo progetto.
-include(FetchContent)
+﻿include(FetchContent)
 
 FetchContent_Declare(
     glfw
@@ -56,5 +51,3 @@ target_link_libraries(imgui PUBLIC glfw)
 target_include_directories(ps1g PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 target_link_libraries(ps1g PRIVATE imgui OpenGL::GL nfd)
-
-# TODO: Aggiungere i test e, se necessario, installare le destinazioni.  

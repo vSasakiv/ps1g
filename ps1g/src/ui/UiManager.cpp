@@ -64,8 +64,10 @@ namespace ps1g {
 	}
 
 	void UiManager::RenderUI(Bus* bus) {
+		ImGui::ShowDemoWindow();
 		this->main_menu_bar_.render(this->window_, bus);
-		this->cpu_debug_menu_.render();
+		this->cpu_debug_menu_.render(bus);
+		this->mem_debug_menu_.render(bus);
 	}
 
 	void UiManager::EndFrame() {
@@ -81,8 +83,25 @@ namespace ps1g {
 	}
 
 	void UiManager::initCallbacks() {
+		// Activates and Deactivates cpu debug window
 		this->main_menu_bar_.toggleCpuDebug = [this]() {
 			this->cpu_debug_menu_.enabled = !this->cpu_debug_menu_.enabled;
-		};
+			};
+
+		// Status of cpu debug window
+		this->main_menu_bar_.enabledCpuDebug = [this]() {
+			return this->cpu_debug_menu_.enabled;
+			};
+
+		// Activates and Deactivates memory debug window
+		this->main_menu_bar_.toggleMemDebug = [this]() {
+			this->mem_debug_menu_.enabled = !this->mem_debug_menu_.enabled;
+			};
+
+		// Status of mem debug window
+		this->main_menu_bar_.enabledMemDebug = [this]() {
+			return this->mem_debug_menu_.enabled;
+			};
+
 	}
 }

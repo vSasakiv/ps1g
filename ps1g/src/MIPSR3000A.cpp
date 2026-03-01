@@ -6,26 +6,33 @@ namespace ps1g {
 
 	MIPSR3000A::MIPSR3000A() {
 		this->pc_ = 0xbfc00000;
+		this->prev_pc_ = 0x0;
 		this->registers_.fill(0xFAAFFAAF); // Fill with random value for debugging
 		this->registers_[0] = 0; // Register 0 is always 0
 		this->fetched_next_ = 0x0; // NOP
 		this->cop0.reset();
+		this->hi_ = 0xFAAFFAAF;
+		this->lo_ = 0xFAAFFAAF;
 	}
 
 	MIPSR3000A::~MIPSR3000A() {}
 
 	void MIPSR3000A::reset() {
 		this->pc_ = 0xbfc00000;
+		this->prev_pc_ = 0x0;
 		this->registers_.fill(0xFAAFFAAF); // Fill with random value for debugging
 		this->registers_[0] = 0; // Register 0 is always 0
 		this->fetched_next_ = 0x0; // NOP
 		this->cop0.reset();
 		this->load_delay_queue_.clear();
+		this->hi_ = 0xFAAFFAAF;
+		this->lo_ = 0xFAAFFAAF;
 	}
 
 	void MIPSR3000A::step(Bus& bus) {
 
 		Instruction instruction(this->fetched_next_);
+		this->prev_pc_ = pc_;
 
 		std::cout << "Executing instruction: "
 			<< std::hex

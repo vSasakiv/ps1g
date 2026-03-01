@@ -1,6 +1,7 @@
 #pragma once
 #include "ps1g/ui/MainMenuBar.h"
 #include "ps1g/ui/CpuDebugMenu.h"
+#include "ps1g/ui/MemoryDebugMenu.h"
 
 
 struct GLFWwindow;
@@ -27,6 +28,7 @@ namespace ps1g {
 		GLFWwindow* window_;
 		MainMenuBar main_menu_bar_;
 		CpuDebugMenu cpu_debug_menu_;
+		MemoryDebugMenu mem_debug_menu_;
 	};
 }
 

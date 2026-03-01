@@ -23,11 +23,19 @@ namespace ps1g {
 			if (ImGui::BeginMenu("Emulation")) {
 				if (ImGui::MenuItem("Run")) { /* cpu.run(); */ }
 				if (ImGui::MenuItem("Pause")) { /* cpu.pause(); */ }
+				if (ImGui::MenuItem("Reset", "Ctrl+R")) { bus->reset();  }
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Debug Tools")) {
-				if (ImGui::MenuItem("Cpu Debugger")) { if (this->toggleCpuDebug) this->toggleCpuDebug(); }
-				if (ImGui::MenuItem("Bios Viewer")) { }
+				if (ImGui::MenuItem("Cpu Debugger", NULL, this->enabledCpuDebug ? this->enabledCpuDebug() : false)) { 
+					if (this->toggleCpuDebug) 
+						this->toggleCpuDebug(); 
+				}
+				if (ImGui::MenuItem("Memory Viewer", NULL, this->enabledMemDebug ? this->enabledMemDebug() : false)) {
+					if (this->toggleMemDebug) 
+						this->toggleMemDebug(); 
+				}
+
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();

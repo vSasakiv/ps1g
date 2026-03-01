@@ -11,14 +11,8 @@ namespace ps1g {
 	class Bus;
 
 	class MIPSR3000A {
+
 	public:
-		MIPSR3000A();
-		~MIPSR3000A(); 
-		void reset();
-		void step(Bus& bus);
-
-
-	private:
 		struct Instruction {
 			uint32_t instruction_raw;
 			Instruction(uint32_t instruction_raw) : instruction_raw(instruction_raw) {};
@@ -48,7 +42,22 @@ namespace ps1g {
 			void reset() { this->system_status = 0; this->cause = 0; };
 		};
 
-		uint32_t pc_, hi_, lo_;
+	public:
+		MIPSR3000A();
+		~MIPSR3000A(); 
+		void reset();
+		void step(Bus& bus);
+		std::array<uint32_t, 32>& registers() { return this->registers_;}
+		std::vector<LoadDelay>& load_delay_queue() { return this->load_delay_queue_;  }
+		uint32_t pc() const { return this->pc_;  }
+		uint32_t prev_pc() const { return this->prev_pc_;  }
+		uint32_t hi() const { return this->hi_;  }
+		uint32_t lo() const { return this->lo_;  }
+		uint32_t fetched_next() const { return this->fetched_next_;  }
+
+	private:
+
+		uint32_t pc_, prev_pc_, hi_, lo_;
 		uint32_t fetched_next_;
 		CP0 cop0;
 		std::array<uint32_t, 32> registers_;
