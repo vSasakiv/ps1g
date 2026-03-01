@@ -6,12 +6,10 @@
 namespace ps1g {
 
 	Bus::Bus() {
-		this->cpu_ = new MIPSR3000A();
+		this->cpu_ = std::shared_ptr<MIPSR3000A>(new MIPSR3000A());
 	}
 
-	Bus::~Bus() {
-		delete this->cpu_;
-	}
+	Bus::~Bus() {}
 
 	void Bus::reset() {
 		this->cpu_->reset();
@@ -19,10 +17,6 @@ namespace ps1g {
 
 	void Bus::step() {
 		this->cpu_->step(*this);
-	}
-
-	MIPSR3000A* Bus::cpu() {
-		return this->cpu_;
 	}
 
 	void Bus::writeU8(uint32_t addr, uint8_t data) {
@@ -91,7 +85,7 @@ namespace ps1g {
 
 	}
 
-	uint8_t Bus::readU8(uint32_t addr) {
+	uint8_t Bus::readU8(uint32_t addr) const {
 		MemoryRegion region = this->getMemoryRegion(addr);
 		uint32_t effective_addr = this->getEffectiveAddress(addr, region);
 
@@ -111,7 +105,7 @@ namespace ps1g {
 		}
 	}
 
-	uint16_t Bus::readU16(uint32_t addr) {
+	uint16_t Bus::readU16(uint32_t addr) const {
 		if (addr % 2 != 0) {
 			std::cout << "Unaligned load half-word access at address " << std::hex << addr << std::dec << std::endl;
 		}
@@ -128,7 +122,7 @@ namespace ps1g {
 		}
 	}
 
-	uint32_t Bus::readU32(uint32_t addr) {
+	uint32_t Bus::readU32(uint32_t addr) const {
 		if (addr % 4 != 0) {
 			std::cout << "Unaligned load word access at address " << std::hex << addr << std::dec << std::endl;
 		}
@@ -161,7 +155,7 @@ namespace ps1g {
 		setMemoryFromFile<512 * 1024>(this->bios_, filename);
 	}
 
-	Bus::MemoryRegion Bus::getMemoryRegion(uint32_t addr) {
+	Bus::MemoryRegion Bus::getMemoryRegion(uint32_t addr) const {
 		if (addr < 0x80000000) {
 			return MemoryRegion::KSEG;
 		} else if (addr < 0xA0000000) {
@@ -173,14 +167,14 @@ namespace ps1g {
 		}
 	}
 
-	uint32_t Bus::getEffectiveAddress(uint32_t addr, MemoryRegion mem_region) {
+	uint32_t Bus::getEffectiveAddress(uint32_t addr, MemoryRegion mem_region) const {
 		switch (mem_region) {
 			case MemoryRegion::KSEG:
 				return addr;
 			case MemoryRegion::KSEG0:
-				return addr - 0x80000000;
+				return addr & 0x7FFFFFFF;
 			case MemoryRegion::KSEG1:
-				return addr - 0xA0000000;
+				return addr & 0x1FFFFFFF;
 			case MemoryRegion::KSEG2:
 				return addr;
 			default:

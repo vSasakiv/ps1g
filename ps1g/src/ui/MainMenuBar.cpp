@@ -1,5 +1,6 @@
 #include "ps1g/ui/MainMenuBar.h"
 #include "ps1g/Bus.h"
+#include "ps1g/Debugger.h"
 
 #include <nfd.hpp>
 #include <iostream>
@@ -10,12 +11,12 @@
 #include <GLFW/glfw3native.h>
 
 namespace ps1g {
-	void MainMenuBar::render(GLFWwindow* window, Bus* bus) {
+	void MainMenuBar::render(GLFWwindow* window, Debugger& debugger) {
 		if (!enabled) return;
 
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("File")) {
-				if (ImGui::MenuItem("Open BIOS...", "Ctrl+B")) { this->menuOpenBios(bus); }
+				if (ImGui::MenuItem("Open BIOS...", "Ctrl+B")) { this->menuOpenBios(debugger); }
 				if (ImGui::MenuItem("Open ROM...", "Ctrl+O")) { }
 				if (ImGui::MenuItem("Exit", "Alt+F4")) { glfwSetWindowShouldClose(window, true); }
 				ImGui::EndMenu();
@@ -23,7 +24,7 @@ namespace ps1g {
 			if (ImGui::BeginMenu("Emulation")) {
 				if (ImGui::MenuItem("Run")) { /* cpu.run(); */ }
 				if (ImGui::MenuItem("Pause")) { /* cpu.pause(); */ }
-				if (ImGui::MenuItem("Reset", "Ctrl+R")) { bus->reset();  }
+				if (ImGui::MenuItem("Reset", "Ctrl+R")) { debugger.reset();  }
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Debug Tools")) {
@@ -78,10 +79,10 @@ namespace ps1g {
 		return out_path;
 	}
 
-	void MainMenuBar::menuOpenBios(Bus* bus) {
+	void MainMenuBar::menuOpenBios(Debugger& debugger) {
 		nfdchar_t* path = this->openFilePicker();
 		if (path == nullptr) return;
-		bus->loadBiosfromFile(path);
+		debugger.loadBiosFromPath(path);
 		this->status_message_ = "BIOS Loaded Successfully";
 		this->status_message_color_ = { 0.1f, 0.8f, 0.1f, 1.0f };
 		NFD_FreePath(path);

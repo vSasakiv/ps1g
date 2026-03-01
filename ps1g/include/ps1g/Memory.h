@@ -10,17 +10,17 @@ namespace ps1g {
 	public:
 		Memory() : memory_{} {}
 
-		uint8_t readU8(uint32_t addr) {
+		uint8_t readU8(uint32_t addr) const {
 			return memory_[addr];
 		}
 
-		uint16_t readU16(uint32_t addr) {
+		uint16_t readU16(uint32_t addr) const {
 			uint16_t b0 = memory_[addr];
 			uint16_t b1 = memory_[sized_wrapping_add(addr, 1, Size)];
 			return b0 | (b1 << 8);
 		}
 
-		uint32_t readU32(uint32_t addr) {
+		uint32_t readU32(uint32_t addr) const {
 			uint32_t b0 = memory_[addr];
 			uint32_t b1 = memory_[sized_wrapping_add(addr, 1, Size)];
 			uint32_t b2 = memory_[sized_wrapping_add(addr, 2, Size)];
@@ -44,8 +44,8 @@ namespace ps1g {
 			memory_[sized_wrapping_add(addr, 3, Size)] = (data >> 24) & 0xFF;
 		}
 
-		std::array<uint8_t, Size>* getMemoryArray() {
-			return &this->memory_;
+		std::array<uint8_t, Size>& getMemoryArray() {
+			return this->memory_;
 		}
 
 	private:

@@ -114,6 +114,7 @@ namespace ps1g {
 					return std::format("MTC0  r{},copr{}", cpu_rt, cop0_rd);
 				}
 				}
+				return "???";
 			}
 
 			// LB -> Reg[rt] = [imm16signed + Reg[rs]]
@@ -162,13 +163,7 @@ namespace ps1g {
 			}
 
 			default:
-				std::cout << "Primary Opcode non existent: " 
-					<< std::hex
-					<< std::setfill('0')
-					<< std::setw(2)
-					<< instruction.getPrimaryOpcode() << std::dec << std::endl;
-				throw std::runtime_error("Invalid Primary Opcode");
-				break;
+				return "???";
 			}
 		}
 		else {
@@ -177,9 +172,18 @@ namespace ps1g {
 			case 0x00: {
 				uint32_t rt = instruction.getRt();
 				uint32_t rs = instruction.getRs();
-				uint32_t imm16 = instruction.getImm16();
+				uint32_t imm5 = instruction.getImm5();
 
-				return std::format("SLL   r{},r{},0x{:05X}", rt, rs, imm16 & 0x1F);
+				return std::format("SLL   r{},r{},0x{:05X}", rt, rs, imm5);
+			}
+
+			// SRA -> Reg[rd] = Reg[rt] << (imm16 & 0x1F)
+			case 0x03: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm5 = instruction.getImm5();
+
+				return std::format("SRA   r{},r{},0x{:05X}", rt, rs, imm5);
 			}
 
 			// JR -> pc = Reg[rs]
@@ -253,16 +257,10 @@ namespace ps1g {
 			}
 
 			default:
-				std::cout << "Secondary Opcode non existent: " 
-					<< std::hex
-					<< std::setfill('0')
-					<< std::setw(2)
-					<< instruction.getSecondaryOpcode() << std::dec << std::endl;
-				throw std::runtime_error("Invalid Secondary Opcode");
-				break;
+				return "???";
 			}
 		}
 
-		return "";
+		return "???";
 	}
 }

@@ -47,7 +47,7 @@ namespace ps1g {
 		~MIPSR3000A(); 
 		void reset();
 		void step(Bus& bus);
-		std::array<uint32_t, 32>& registers() { return this->registers_;}
+		std::array<uint32_t, 32>const& registers() const { return this->registers_;}
 		std::vector<LoadDelay>& load_delay_queue() { return this->load_delay_queue_;  }
 		uint32_t pc() const { return this->pc_;  }
 		uint32_t prev_pc() const { return this->prev_pc_;  }

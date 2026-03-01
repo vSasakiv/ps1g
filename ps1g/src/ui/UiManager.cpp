@@ -1,5 +1,5 @@
 #include "ps1g/ui/UiManager.h"
-#include "ps1g/Bus.h"
+#include "ps1g/Debugger.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -63,11 +63,11 @@ namespace ps1g {
 		ImGui::NewFrame();
 	}
 
-	void UiManager::RenderUI(Bus* bus) {
+	void UiManager::RenderUI(Debugger& debugger) {
 		ImGui::ShowDemoWindow();
-		this->main_menu_bar_.render(this->window_, bus);
-		this->cpu_debug_menu_.render(bus);
-		this->mem_debug_menu_.render(bus);
+		this->main_menu_bar_.render(this->window_, debugger);
+		this->cpu_debug_menu_.render(debugger);
+		this->mem_debug_menu_.render(debugger);
 	}
 
 	void UiManager::EndFrame() {
@@ -102,6 +102,11 @@ namespace ps1g {
 		this->main_menu_bar_.enabledMemDebug = [this]() {
 			return this->mem_debug_menu_.enabled;
 			};
-
+		
+		// Change message of status bar
+		this->cpu_debug_menu_.setStatusMessage = [this](std::string& message, std::array<float, 4>& color) {
+			this->main_menu_bar_.setStatusMessage(message);
+			this->main_menu_bar_.setStatusColor(color);
+			};
 	}
 }

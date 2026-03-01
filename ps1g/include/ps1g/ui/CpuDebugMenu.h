@@ -1,13 +1,16 @@
 #pragma once
 #include <array>
 #include <string>
+#include <functional>
 
 namespace ps1g {
-	class Bus;
+	class Debugger;
 	class CpuDebugMenu {
 	public:
 		bool enabled = false;
-		void render(Bus* bus);
+		void render(Debugger& debugger) const;
+
+		std::function<void(std::string&, std::array<float, 4>&)> setStatusMessage;
 
 	private:
 		static constexpr std::array<const char*, 32> register_names_ = {

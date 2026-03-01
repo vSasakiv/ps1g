@@ -24,7 +24,7 @@ namespace ps1g {
 
 		file.seekg(0, std::ios::beg);
 
-		if (file.read(reinterpret_cast<char*>(memory.getMemoryArray()->data()), size)) {
+		if (file.read(reinterpret_cast<char*>(memory.getMemoryArray().data()), size)) {
 			std::cout << "Successfully loaded file into memory: " << filename << std::endl;
 		} else {
 			std::cerr << "Error reading file: " << filename << std::endl;

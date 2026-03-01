@@ -1,11 +1,11 @@
 #pragma once
 
 namespace ps1g {
-	class Bus;
+	class Debugger;
 
 	class MemoryDebugMenu {
 	public:
 		bool enabled = false;
-		void render(Bus* bus);
+		void render(Debugger& debugger) const;
 	};
 }

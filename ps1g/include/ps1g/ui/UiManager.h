@@ -8,6 +8,8 @@ struct GLFWwindow;
 
 namespace ps1g {
 
+	class Debugger;
+
 	class UiManager {
 
 	public:
@@ -17,7 +19,7 @@ namespace ps1g {
 		bool Initialize();
 		bool IsRunning();
 		void BeginFrame();
-		void RenderUI(Bus* bus);
+		void RenderUI(Debugger& debugger);
 		void EndFrame();
 
 		GLFWwindow* window() const { return window_; }

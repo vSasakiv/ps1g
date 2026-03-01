@@ -275,13 +275,24 @@ namespace ps1g {
 		}
 		else {
 			switch (instruction.getSecondaryOpcode()) {
-			// SLL -> Reg[rd] = Reg[rt] << (imm16 & 0x1F)
+			// SLL -> Reg[rd] = Reg[rt] << imm5
 			case 0x00: {
 				uint32_t rt = instruction.getRt();
 				uint32_t rd = instruction.getRd();
-				uint32_t imm16 = instruction.getImm16();
+				uint32_t imm5 = instruction.getImm5();
 
-				this->writeReg(rd, this->readReg(rt) << (imm16 & 0x1F));
+				this->writeReg(rd, this->readReg(rt) << imm5);
+				this->pc_ += 0x4;
+				break;
+			}
+
+			// SRA -> Reg[rd] = Reg[rt] >>> (imm16 & 0x1F)
+			case 0x03: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t imm5 = instruction.getImm5();
+
+				this->writeReg(rd, ((int32_t)this->readReg(rt)) >> imm5);
 				this->pc_ += 0x4;
 				break;
 			}
@@ -394,7 +405,7 @@ namespace ps1g {
 	{
 		uint32_t cop_operation = instruction.getRs();
 		switch (cop_operation) {
-		// MTF0 -> Reg[rt] = Cop0[rd], load delay
+		// MFC0 -> Reg[rt] = Cop0[rd], load delay
 		case 0x00: {
 			uint32_t cpu_rt = instruction.getRt();
 			uint32_t cop0_rd = instruction.getRd();
