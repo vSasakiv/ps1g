@@ -46,16 +46,16 @@ namespace ps1g {
 		return this->bus_.cpu()->pc();
 	}
 
-	uint32_t Debugger::prevPc() {
-		return this->bus_.cpu()->prev_pc();
+	uint32_t Debugger::nextPc() {
+		return this->bus_.cpu()->next_pc();
 	}
 
 	uint32_t Debugger::currentInstruction() {
-		return this->bus_.cpu()->fetched_next();
+		return this->bus_.readU32(this->readPc());
 	}
 
 	uint32_t Debugger::nextInstruction() {
-		return this->bus_.readU32(this->readPc());
+		return this->bus_.readU32(this->nextPc());
 	}
 
 	uint32_t Debugger::readHi() {

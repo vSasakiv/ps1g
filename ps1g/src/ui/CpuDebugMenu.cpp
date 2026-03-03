@@ -100,7 +100,7 @@ namespace ps1g {
 
 				ImGui::TableSetColumnIndex(0);
 				char pc_str[11];
-				sprintf(pc_str, "0x%08X", debugger.prevPc());
+				sprintf(pc_str, "0x%08X", debugger.readPc());
 				if (ImGui::Selectable(pc_str, false, ImGuiSelectableFlags_AllowDoubleClick)) {
 					if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 						ImGui::SetClipboardText(&pc_str[2]);
@@ -115,7 +115,7 @@ namespace ps1g {
 				ImGui::Text("0x%08X", debugger.currentInstruction()); ImGui::SameLine();
 
 				ImGui::TableSetColumnIndex(2);
-				ImGui::Text(disassemble(debugger.currentInstruction(), debugger.prevPc()).c_str());
+				ImGui::Text(disassemble(debugger.currentInstruction(), debugger.readPc()).c_str());
 
 				ImGui::EndTable();
 			}
@@ -131,7 +131,7 @@ namespace ps1g {
 
 				ImGui::TableSetColumnIndex(0);
 				char pc_next_str[11];
-				sprintf(pc_next_str, "0x%08X", debugger.readPc());
+				sprintf(pc_next_str, "0x%08X", debugger.nextPc());
 				if (ImGui::Selectable(pc_next_str, false, ImGuiSelectableFlags_AllowDoubleClick)) {
 					if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 						ImGui::SetClipboardText(&pc_next_str[2]);
@@ -146,7 +146,7 @@ namespace ps1g {
 				ImGui::Text("0x%08X", debugger.nextInstruction()); ImGui::SameLine();
 
 				ImGui::TableSetColumnIndex(2);
-				ImGui::Text(disassemble(debugger.nextInstruction(), debugger.readPc()).c_str());
+				ImGui::Text(disassemble(debugger.nextInstruction(), debugger.nextPc()).c_str());
 
 				ImGui::EndTable();
 			}

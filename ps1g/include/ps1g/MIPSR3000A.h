@@ -50,20 +50,24 @@ namespace ps1g {
 		std::array<uint32_t, 32>const& registers() const { return this->registers_;}
 		std::vector<LoadDelay>& load_delay_queue() { return this->load_delay_queue_;  }
 		uint32_t pc() const { return this->pc_;  }
-		uint32_t prev_pc() const { return this->prev_pc_;  }
+		uint32_t next_pc() const { return this->next_pc_;  }
 		uint32_t hi() const { return this->hi_;  }
 		uint32_t lo() const { return this->lo_;  }
-		uint32_t fetched_next() const { return this->fetched_next_;  }
 
 	private:
 
-		uint32_t pc_, prev_pc_, hi_, lo_;
-		uint32_t fetched_next_;
+		uint32_t pc_, next_pc_, hi_, lo_;
 		CP0 cop0;
 		std::array<uint32_t, 32> registers_;
 		std::vector<LoadDelay> load_delay_queue_;
 		void writeReg(size_t reg, uint32_t value);
 		uint32_t readReg(size_t reg);
+
+		void writeLo(uint32_t value);
+		uint32_t readLo();
+		void writeHi(uint32_t value);
+		uint32_t readHi();
+
 		void cop0Execute(Instruction& instruction);
 		void evaluateLoadDelays();
 	};

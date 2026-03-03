@@ -47,6 +47,8 @@ namespace ps1g {
 		static bool isRamSizeAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801060 && effective_addr < 0x1F801064;  }
 		static bool isExpansion2Address(uint32_t effective_addr) { return effective_addr >= 0x1F802000 && effective_addr < 0x1F802068;  }
 		static bool isCacheControlAddress(uint32_t effective_addr) { return effective_addr >= 0xFFFE0130 && effective_addr < 0xFFFE0134;  }
+		static bool isInterruptControlAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801070 && effective_addr < 0x1F801078;  }
+		static bool isTimerRegisterAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801100 && effective_addr < 0x1F801130;  }
 
 		uint32_t getEffectiveAddress(uint32_t addr, MemoryRegion mem_region) const;
 		MemoryRegion getMemoryRegion(uint32_t addr) const;

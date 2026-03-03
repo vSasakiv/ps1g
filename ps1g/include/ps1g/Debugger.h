@@ -21,7 +21,7 @@ namespace ps1g {
 		void loadBiosFromPath(const char* filepath);
 
 		uint32_t readPc();
-		uint32_t prevPc();
+		uint32_t nextPc();
 
 		uint32_t currentInstruction();
 		uint32_t nextInstruction();

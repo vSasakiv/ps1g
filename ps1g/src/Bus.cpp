@@ -49,6 +49,9 @@ namespace ps1g {
 		else if (Bus::isSPUAddress(effective_addr)) {
 			std::cout << "Write to SPU Registers not yet implemented" << std::endl;
 		}
+		else if (Bus::isTimerRegisterAddress(effective_addr)) {
+			std::cout << "Write to Timer Registers not yet implemented" << std::endl;
+		}
 		else {
 			std::cout << "Unmapped address: " << std::hex << addr << std::dec << std::endl;
 			throw std::runtime_error("Write to unmapped address");
@@ -77,6 +80,9 @@ namespace ps1g {
 		}
 		else if (Bus::isCacheControlAddress(effective_addr)) {
 			std::cout << "Write to cache control not yet implemented" << std::endl;
+		}
+		else if (Bus::isInterruptControlAddress(effective_addr)) {
+			std::cout << "Write to Interrupt Control not yet implemented" << std::endl;
 		}
 		else {
 			std::cout << "Unmapped address: " << std::hex << addr << std::dec << std::endl;
@@ -144,6 +150,10 @@ namespace ps1g {
 		}
 		else if (Bus::isCacheControlAddress(effective_addr)) {
 			std::cout << "Read of cache control not yet implemented" << std::endl;
+		}
+		else if (Bus::isInterruptControlAddress(effective_addr)) {
+			std::cout << "Read of interrupt control not yet implemented, returning default 0" << std::endl;
+			return 0;
 		}
 		else {
 			std::cout << "Tried reading from unmapped address: " << std::hex << addr << std::dec << std::endl;

@@ -12,6 +12,36 @@ namespace ps1g {
 		if (instruction.getPrimaryOpcode() != 0) {
 			switch (instruction.getPrimaryOpcode()) {
 
+			// BcondZ instructions
+			case 0x01: {
+				uint32_t branch_type = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				switch (branch_type) {
+				// BLTZ Reg[rs] < 0 then pc = pc + 4 + (imm16signed << 2)
+				case 0x00: {
+					return std::format("BLEZ  r{},0x{:08X}", rs, pc + 4 + (imm16signed << 2));
+				}
+				// BGEZ Reg[rs] >= 0 then pc = pc + 4 + (imm16signed << 2)
+				case 0x01: {
+					return std::format("BGEZ  r{},0x{:08X}", rs, pc + 4 + (imm16signed << 2));
+				}
+				// BLTZAL ra = pc + 4 ; Reg[rs] < 0 then pc = pc + 4 + (imm16signed << 2)
+				case 0x10: {
+					return std::format("BLTZAL r{},0x{:08X}", rs, pc + 4 + (imm16signed << 2));
+				}
+				// BGEZAL ra = pc + 4 ; Reg[rs] >= 0 then pc = pc + 4 + (imm16signed << 2)
+				case 0x11: {
+					return std::format("BGEZAL r{},0x{:08X}", rs, pc + 4 + (imm16signed << 2));
+				}
+				default: {
+					return std::format("???");
+				}
+				}
+				return std::format("???");
+			}
+
 			// J -> pc = (pc & 0xF0000000) + (imm26 << 2)
 			case 0x02: {
 				uint32_t imm26 = instruction.getImm26();
@@ -41,6 +71,22 @@ namespace ps1g {
 				return std::format("BNE   r{},r{},0x{:08X}", rt, rs, pc + 4 + (imm16signed << 2));
 			}
 
+			// BLEZ -> Reg[rs] <= 0 then pc = pc + 4 + (imm16signed << 2)
+			case 0x06: {
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				return std::format("BLEZ  r{},0x{:08X}", rs, pc + 4 + (imm16signed << 2));
+			}
+
+			// BGTZ -> Reg[rs] > 0 then pc = pc + 4 + (imm16signed << 2)
+			case 0x07: {
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				return std::format("BGTZ  r{},0x{:08X}", rs, pc + 4 + (imm16signed << 2));
+			}
+
 			// ADDI -> Reg[rt] = Reg[rs] + imm16signed, raise exception if signed overflow
 			case 0x08: {
 				uint32_t rt = instruction.getRt();
@@ -57,6 +103,24 @@ namespace ps1g {
 				uint32_t imm16signed = instruction.getImm16Signed();
 
 				return std::format("ADDIU r{},r{},0x{:08X}", rt, rs, imm16signed);
+			}
+
+			// SLTI -> Reg[rt] = Reg[rs] < imm16signed
+			case 0x0A: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				return std::format("SLTI  r{},r{},0x{:08X}", rt, rs, imm16signed);
+			}
+
+			// SLTIU -> Reg[rt] = Reg[rs] < imm16signed
+			case 0x0B: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				return std::format("SLTIU r{},r{},0x{:08X}", rt, rs, imm16signed);
 			}
 
 			// ANDI -> Reg[rt] = Reg[rs] & imm16
@@ -135,6 +199,15 @@ namespace ps1g {
 				return std::format("LW    r{},0x{:04X}(r{})", rt, imm16signed, rs);
 			}
 
+			// LBU -> Reg[rt] = [imm16signed + Reg[rs]]
+			case 0x24: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				return std::format("LBU   r{},0x{:04X}(r{})", rt, imm16signed, rs);
+			}
+
 			// SB -> [imm16signed + Reg[rs]] = rt
 			case 0x28: {
 				uint32_t rt = instruction.getRt();
@@ -168,7 +241,7 @@ namespace ps1g {
 		}
 		else {
 			switch (instruction.getSecondaryOpcode()) {
-			// SLL -> Reg[rd] = Reg[rt] << (imm16 & 0x1F)
+			// SLL -> Reg[rd] = Reg[rt] << imm5
 			case 0x00: {
 				uint32_t rt = instruction.getRt();
 				uint32_t rs = instruction.getRs();
@@ -177,7 +250,16 @@ namespace ps1g {
 				return std::format("SLL   r{},r{},0x{:05X}", rt, rs, imm5);
 			}
 
-			// SRA -> Reg[rd] = Reg[rt] << (imm16 & 0x1F)
+			// SRL -> Reg[rd] = Reg[rt] >> imm5
+			case 0x02: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm5 = instruction.getImm5();
+
+				return std::format("SRL   r{},r{},0x{:05X}", rt, rs, imm5);
+			}
+
+			// SRA -> Reg[rd] = Reg[rt] >>> imm5
 			case 0x03: {
 				uint32_t rt = instruction.getRt();
 				uint32_t rs = instruction.getRs();
@@ -192,6 +274,51 @@ namespace ps1g {
 
 				return std::format("JR    r{}", rs);
 			}
+
+			// JALR -> Reg[rd] = pc + 4 ; pc = Reg[rs]
+			case 0x09: {
+				uint32_t rs = instruction.getRs();
+				uint32_t rd = instruction.getRd();
+
+				return std::format("JALR  r{},r{}", rd, rs);
+			}
+
+			// MFHI -> Reg[rd] = hi
+			case 0x10: {
+				uint32_t rd = instruction.getRd();
+
+				return std::format("MFHI  r{}", rd);
+			}
+
+			// MTHI -> hi = Reg[rs] 
+			case 0x11: {
+				uint32_t rs = instruction.getRs();
+
+				return std::format("MTHI  r{}", rs);
+			}
+
+			// MFLO -> Reg[rd] = lo
+			case 0x12: {
+				uint32_t rd = instruction.getRd();
+
+				return std::format("MFLO  r{}", rd);
+			}
+
+			// MTLO -> lo = Reg[rs] 
+			case 0x13: {
+				uint32_t rs = instruction.getRs();
+
+				return std::format("MTLO  r{}", rs);
+			}
+
+			// DIV -> lo = Reg[rs] / Reg[rt] ; hi = Reg[rs] % Reg[rt]
+			case 0x1A: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+
+				return std::format("DIV   r{},r{}", rs, rt);
+			}
+
 
 			// ADD -> Reg[rd] = Reg[rt] + Reg[rs], exception if signed overflow
 			case 0x20: {
@@ -209,6 +336,15 @@ namespace ps1g {
 				uint32_t rd = instruction.getRd();
 
 				return std::format("ADDU  r{},r{},r{}", rd, rs, rt);
+			}
+
+			// SUBU -> Reg[rd] = Reg[rs] - Reg[rt]
+			case 0x23: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t rs = instruction.getRs();
+
+				return std::format("SUBU  r{},r{},r{}", rd, rs, rt);
 			}
 
 			// AND -> Reg[rd] = Reg[Rt] & Reg[Rs]
@@ -245,6 +381,15 @@ namespace ps1g {
 				uint32_t rd = instruction.getRd();
 
 				return std::format("NOR   r{},r{},r{}", rd, rs, rt);
+			}
+
+			// SLT -> Reg[rd] = Reg[rs] < Reg[rt]
+			case 0x2A: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t rd = instruction.getRd();
+
+				return std::format("SLT    r{},r{},r{}", rd, rs, rt);
 			}
 
 			// SLTU -> Reg[rd] = Reg[rs] < Reg[rt]
