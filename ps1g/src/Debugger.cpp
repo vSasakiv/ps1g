@@ -48,7 +48,7 @@ namespace ps1g {
 
 	void Debugger::execute() {
 		if (this->is_resumed_)
-			for (int i = 0; i < 1000; i++)
+			for (int i = 0; i < 10000; i++)
 				if (!this->step())
 					break;
 	}

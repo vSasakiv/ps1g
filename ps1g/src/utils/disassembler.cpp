@@ -197,6 +197,15 @@ namespace ps1g {
 
 				return std::format("LB    r{},0x{:04X}(r{})", rt, imm16signed, rs);
 			}
+
+			// LH -> Reg[rt] = [imm16signed + Reg[rs]]
+			case 0x21: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				return std::format("LH    r{},0x{:04X}(r{})", rt, imm16signed, rs);
+			}
 			
 			// LW -> Reg[rt] = [imm16signed + Reg[rs]]
 			case 0x23: {
@@ -214,6 +223,15 @@ namespace ps1g {
 				uint32_t imm16signed = instruction.getImm16Signed();
 
 				return std::format("LBU   r{},0x{:04X}(r{})", rt, imm16signed, rs);
+			}
+
+			// LHU -> Reg[rt] = [imm16signed + Reg[rs]]
+			case 0x25: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+				uint32_t imm16signed = instruction.getImm16Signed();
+
+				return std::format("LHU   r{},0x{:04X}(r{})", rt, imm16signed, rs);
 			}
 
 			// SB -> [imm16signed + Reg[rs]] = rt
@@ -276,6 +294,33 @@ namespace ps1g {
 				return std::format("SRA   r{},r{},0x{:05X}", rt, rs, imm5);
 			}
 
+			// SLLV -> Reg[rd] = Reg[rt] << (Reg[rs] & 0x1F)
+			case 0x04: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t rs = instruction.getRs();
+
+				return std::format("SLLV  r{},r{},r{}", rd, rs, rt);
+			}
+
+			// SRLV -> Reg[rd] = Reg[rt] >> (Reg[rs] & 0x1F)
+			case 0x06: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t rs = instruction.getRs();
+
+				return std::format("SRLV  r{},r{},r{}", rd, rs, rt);
+			}
+
+			// SRAV -> Reg[rd] = Reg[rt] >>> (Reg[rs] & 0x1F)
+			case 0x07: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t rs = instruction.getRs();
+
+				return std::format("SRAV  r{},r{},r{}", rd, rs, rt);
+			}
+
 			// JR -> pc = Reg[rs]
 			case 0x08: {
 				uint32_t rs = instruction.getRs();
@@ -294,6 +339,11 @@ namespace ps1g {
 			// Syscall -> Generate Exception
 			case 0x0C: {
 				return std::format("SYSCALL");
+			}
+
+			// Break -> Generate Exception
+			case 0x0D: {
+				return std::format("BREAK");
 			}
 
 			// MFHI -> Reg[rd] = hi
@@ -322,6 +372,14 @@ namespace ps1g {
 				uint32_t rs = instruction.getRs();
 
 				return std::format("MTLO  r{}", rs);
+			}
+
+			// MULTU -> {hi, lo} = Reg[rs] * Reg[rt]
+			case 0x19: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+
+				return std::format("MULTU r{},r{}", rs, rt);
 			}
 
 			// DIV -> lo = Reg[rs] / Reg[rt] ; hi = Reg[rs] % Reg[rt]

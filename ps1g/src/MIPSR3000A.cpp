@@ -264,6 +264,24 @@ namespace ps1g {
 				}
 				break;
 			}
+
+			// LH -> Reg[rt] = [imm16signed + Reg[rs]]
+			case 0x21: {
+				// If cache is isolated, just void the read for now since cache is not implemented
+				if (this->cop0.system_status & 0x10000) {
+					std::cout << "Read with isolated cache, ignoring" << std::endl;
+				}
+				else {
+					uint32_t rt = instruction.getRt();
+					uint32_t rs = instruction.getRs();
+					uint32_t imm16signed = instruction.getImm16Signed();
+
+					uint32_t addr = imm16signed + this->readReg(rs);
+					this->load_delay_queue_.push_back(LoadDelay(rt, static_cast<int16_t>(bus.readU16(addr)), 1));
+				}
+				break;
+			}
+
 			
 			// LW -> Reg[rt] = [imm16signed + Reg[rs]]
 			case 0x23: {
@@ -298,6 +316,23 @@ namespace ps1g {
 
 					uint32_t addr = imm16signed + this->readReg(rs);
 					this->load_delay_queue_.push_back(LoadDelay(rt, bus.readU8(addr), 1));
+				}
+				break;
+			}
+
+			// LHU -> Reg[rt] = [imm16signed + Reg[rs]]
+			case 0x25: {
+				// If cache is isolated, just void the read for now since cache is not implemented
+				if (this->cop0.system_status & 0x10000) {
+					std::cout << "Read with isolated cache, ignoring" << std::endl;
+				}
+				else {
+					uint32_t rt = instruction.getRt();
+					uint32_t rs = instruction.getRs();
+					uint32_t imm16signed = instruction.getImm16Signed();
+
+					uint32_t addr = imm16signed + this->readReg(rs);
+					this->load_delay_queue_.push_back(LoadDelay(rt, bus.readU16(addr), 1));
 				}
 				break;
 			}
@@ -360,12 +395,7 @@ namespace ps1g {
 			}
 
 			default:
-				std::cout << "Primary Opcode not implemented/non existent: " 
-					<< std::hex
-					<< std::setfill('0')
-					<< std::setw(2)
-					<< instruction.getPrimaryOpcode() << std::dec << std::endl;
-				throw std::runtime_error("Invalid Primary Opcode");
+				throw std::runtime_error(std::format("Invalid Primary Opcode: 0x{:02X}", instruction.getPrimaryOpcode()));
 				break;
 			}
 		}
@@ -401,6 +431,36 @@ namespace ps1g {
 				break;
 			}
 
+			// SLLV -> Reg[rd] = Reg[rt] << (Reg[rs] & 0x1F)
+			case 0x04: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t rs = instruction.getRs();
+
+				this->writeReg(rd, this->readReg(rt) << (this->readReg(rs) & 0x1F));
+				break;
+			}
+
+			// SRLV -> Reg[rd] = Reg[rt] >> (Reg[rs] & 0x1F) 
+			case 0x06: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t rs = instruction.getRs();
+
+				this->writeReg(rd, this->readReg(rt) >> (this->readReg(rs) & 0x1F));
+				break;
+			}
+
+			// SRAV -> Reg[rd] = Reg[rt] >>> (Reg[rs] & 0x1F) 
+			case 0x07: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rd = instruction.getRd();
+				uint32_t rs = instruction.getRs();
+
+				this->writeReg(rd, static_cast<int32_t>(this->readReg(rt)) >> (this->readReg(rs) & 0x1F));
+				break;
+			}
+
 			// JR -> pc = Reg[rs]
 			case 0x08: {
 				uint32_t rs = instruction.getRs();
@@ -421,6 +481,12 @@ namespace ps1g {
 			// Syscall -> Generate Exception
 			case 0x0C: {
 				this->exception(ExceptionType::Syscall);
+				break;
+			}
+
+			// Break -> Generate Break Exception
+			case 0x0D: {
+				this->exception(ExceptionType::Break);
 				break;
 			}
 
@@ -450,6 +516,16 @@ namespace ps1g {
 				uint32_t rs = instruction.getRs();
 				this->writeLo(this->readReg(rs));
 				break;
+			}
+
+			// MULTU -> {hi, lo} = Reg[rs] * Reg[rt]
+			case 0x19: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+
+				uint64_t result = static_cast<uint64_t>(this->readReg(rs)) * static_cast<uint64_t>(this->readReg(rt));
+				this->writeHi(static_cast<uint32_t>(result >> 32));
+				this->writeLo(static_cast<uint32_t>(result & 0xFFFF));
 			}
 
 			// DIV -> lo = Reg[rs] / Reg[rt] ; hi = Reg[rs] % Reg[rt]
@@ -570,7 +646,7 @@ namespace ps1g {
 				uint32_t rd = instruction.getRd();
 				uint32_t rs = instruction.getRs();
 
-				this->writeReg(rd, 0xFFFFFFFF ^ (this->readReg(rt) | this->readReg(rs)));
+				this->writeReg(rd, ~(this->readReg(rt) | this->readReg(rs)));
 				break;
 			}
 					 
@@ -595,12 +671,7 @@ namespace ps1g {
 			}
 
 			default:
-				std::cout << "Secondary Opcode not implemented/non existent: " 
-					<< std::hex
-					<< std::setfill('0')
-					<< std::setw(2)
-					<< instruction.getSecondaryOpcode() << std::dec << std::endl;
-				throw std::runtime_error("Invalid Secondary Opcode");
+				throw std::runtime_error(std::format("Invalid Secondary Opcode: 0x{:02X}", instruction.getSecondaryOpcode()));
 				break;
 			}
 		}

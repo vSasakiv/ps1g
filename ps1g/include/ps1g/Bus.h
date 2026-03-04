@@ -42,9 +42,11 @@ namespace ps1g {
 		static bool isBiosAddress(uint32_t effective_addr) { return effective_addr >= 0x1FC00000 && effective_addr < 0x1FC80000; }
 
 		static bool isMemControlAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801000 && effective_addr < 0x1F801024; }
-		static bool isSPUAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801D80 && effective_addr < 0x1F802000; }
+		static bool isDmaAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801080 && effective_addr < 0x1F801100; }
+		static bool isSPUAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801C00 && effective_addr < 0x1F802000; }
 		static bool isExpansion1Address(uint32_t effective_addr) { return effective_addr >= 0x1F000000 && effective_addr < 0x1F080000;  }
 		static bool isRamSizeAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801060 && effective_addr < 0x1F801064;  }
+		static bool isGPUAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801810 && effective_addr < 0x1F801818;  }
 		static bool isExpansion2Address(uint32_t effective_addr) { return effective_addr >= 0x1F802000 && effective_addr < 0x1F802068;  }
 		static bool isCacheControlAddress(uint32_t effective_addr) { return effective_addr >= 0xFFFE0130 && effective_addr < 0xFFFE0134;  }
 		static bool isInterruptControlAddress(uint32_t effective_addr) { return effective_addr >= 0x1F801070 && effective_addr < 0x1F801078;  }

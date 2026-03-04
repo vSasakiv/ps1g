@@ -45,7 +45,6 @@ namespace ps1g {
 		uint32_t effective_addr = this->getEffectiveAddress(addr, region);
 
 		if (Bus::isRamAddress(effective_addr)) {
-			throw std::runtime_error(std::format("WRITEU16 Write to unmapped address: 0x{:08X}", addr));
 			this->main_ram_.writeU16(effective_addr, data);
 		}
 		else if (Bus::isSPUAddress(effective_addr)) {
@@ -53,6 +52,9 @@ namespace ps1g {
 		}
 		else if (Bus::isTimerRegisterAddress(effective_addr)) {
 			std::cout << "Write to Timer Registers not yet implemented" << std::endl;
+		}
+		else if (Bus::isInterruptControlAddress(effective_addr)) {
+			std::cout << "Write to Interrupt Control not yet implemented" << std::endl;
 		}
 		else {
 			throw std::runtime_error(std::format("WRITEU16 Write to unmapped address: 0x{:08X}", addr));
@@ -73,14 +75,23 @@ namespace ps1g {
 		else if (Bus::isMemControlAddress(effective_addr)) {
 			std::cout << "Write to Memory Control 1 not yet implemented" << std::endl;
 		}
+		else if (Bus::isDmaAddress(effective_addr)) {
+			std::cout << "Write to Dma not yet implemented" << std::endl;
+		}
 		else if (Bus::isRamSizeAddress(effective_addr)) {
 			std::cout << "Write to Ram Size not yet implemented" << std::endl;
+		}
+		else if (Bus::isGPUAddress(effective_addr)) {
+			std::cout << "Write to GPU not yet implemented" << std::endl;
 		}
 		else if (Bus::isBiosAddress(effective_addr)) {
 			std::cout << "Tried writing to bios at address: " << std::hex << addr << std::dec << std::endl;
 		}
 		else if (Bus::isCacheControlAddress(effective_addr)) {
 			std::cout << "Write to cache control not yet implemented" << std::endl;
+		}
+		else if (Bus::isTimerRegisterAddress(effective_addr)) {
+			std::cout << "Write to Timer Registers not yet implemented" << std::endl;
 		}
 		else if (Bus::isInterruptControlAddress(effective_addr)) {
 			std::cout << "Write to Interrupt Control not yet implemented" << std::endl;
@@ -121,6 +132,13 @@ namespace ps1g {
 		if (Bus::isRamAddress(effective_addr)) {
 			return this->main_ram_.readU16(effective_addr);
 		}
+		else if (Bus::isSPUAddress(effective_addr)) {
+			std::cout << "Tried reading from SPU address, return default 0x00: " << std::hex << addr << std::dec << std::endl;
+			return 0x00;
+		}
+		else if (Bus::isInterruptControlAddress(effective_addr)) {
+			std::cout << "Read to Interrupt Control not yet implemented" << std::endl;
+		}
 		else {
 			throw std::runtime_error(std::format("READU16 read from unmapped address: 0x{:08X}", addr));
 		}
@@ -140,8 +158,14 @@ namespace ps1g {
 			std::cout << "Read of Mem Control not yet implemented" << std::endl;
 			// return this->mem_control_.readU32(effective_addr - kMemoryControlOffset);
 		}
+		else if (Bus::isDmaAddress(effective_addr)) {
+			std::cout << "Read to Dma not yet implemented" << std::endl;
+		}
 		else if (Bus::isRamSizeAddress(effective_addr)) {
 			std::cout << "Read of Ram Size not yet implemented" << std::endl;
+		}
+		else if (Bus::isGPUAddress(effective_addr)) {
+			std::cout << "Read of GPU not yet implemented" << std::endl;
 		}
 		else if (Bus::isBiosAddress(effective_addr)) {
 			return this->bios_.readU32(effective_addr - kBiosOffset);
