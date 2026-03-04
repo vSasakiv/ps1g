@@ -177,6 +177,14 @@ namespace ps1g {
 
 					return std::format("MTC0  r{},copr{}", cpu_rt, cop0_rd);
 				}
+
+				// RFE
+				case 0x10: {
+					if (instruction.getSecondaryOpcode() != 0x10) {
+						return "???";
+					}
+					return std::format("RFE");
+				}
 				}
 				return "???";
 			}
@@ -283,6 +291,11 @@ namespace ps1g {
 				return std::format("JALR  r{},r{}", rd, rs);
 			}
 
+			// Syscall -> Generate Exception
+			case 0x0C: {
+				return std::format("SYSCALL");
+			}
+
 			// MFHI -> Reg[rd] = hi
 			case 0x10: {
 				uint32_t rd = instruction.getRd();
@@ -317,6 +330,14 @@ namespace ps1g {
 				uint32_t rs = instruction.getRs();
 
 				return std::format("DIV   r{},r{}", rs, rt);
+			}
+
+			// DIVU -> lo = Reg[rs] / Reg[rt] ; hi = Reg[rs] % Reg[rt]
+			case 0x1B: {
+				uint32_t rt = instruction.getRt();
+				uint32_t rs = instruction.getRs();
+
+				return std::format("DIVU  r{},r{}", rs, rt);
 			}
 
 

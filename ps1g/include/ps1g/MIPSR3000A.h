@@ -9,6 +9,7 @@
 namespace ps1g {
 
 	class Bus;
+	enum class ExceptionType : uint32_t;
 
 	class MIPSR3000A {
 
@@ -36,10 +37,14 @@ namespace ps1g {
 		};
 
 		struct CP0 {
+			static inline constexpr uint32_t SR = 12;
+			static inline constexpr uint32_t Cause = 13;
+			static inline constexpr uint32_t EPC = 14;
+			uint32_t exception_pc;
 			uint32_t system_status;
 			uint32_t cause;
-			CP0() : system_status(0), cause(0) {};
-			void reset() { this->system_status = 0; this->cause = 0; };
+			CP0() : system_status(0), cause(0), exception_pc(0) {};
+			void reset() { this->system_status = 0; this->cause = 0; this->exception_pc = 0; };
 		};
 
 	public:
@@ -47,6 +52,8 @@ namespace ps1g {
 		~MIPSR3000A(); 
 		void reset();
 		void step(Bus& bus);
+		void exception(ExceptionType type);
+		void rollBack();
 		std::array<uint32_t, 32>const& registers() const { return this->registers_;}
 		std::vector<LoadDelay>& load_delay_queue() { return this->load_delay_queue_;  }
 		uint32_t pc() const { return this->pc_;  }
@@ -54,12 +61,18 @@ namespace ps1g {
 		uint32_t hi() const { return this->hi_;  }
 		uint32_t lo() const { return this->lo_;  }
 
+		void writeCP0(uint32_t reg, uint32_t value);
+		uint32_t readCP0(uint32_t reg) const;
+
+
 	private:
 
-		uint32_t pc_, next_pc_, hi_, lo_;
+		uint32_t current_pc_, pc_, next_pc_, hi_, lo_;
+		bool branch_, delay_slot_, prev_branch_;
 		CP0 cop0;
 		std::array<uint32_t, 32> registers_;
 		std::vector<LoadDelay> load_delay_queue_;
+		void branch(uint32_t address);
 		void writeReg(size_t reg, uint32_t value);
 		uint32_t readReg(size_t reg);
 

@@ -2,6 +2,7 @@
 #include "ps1g/Debugger.h"
 #include "ps1g/MIPSR3000A.h"
 #include "ps1g/utils/disassembler.h"
+#include "ps1g/ui/Components.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -18,7 +19,7 @@ namespace ps1g {
 		ImGui::Begin("CPU Debug Menu");
 		static float copy_timer;
 
-		if (ImGui::CollapsingHeader("Execution Control")) {
+		if (ImGui::CollapsingHeader("Execution Control", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0.8f, 0, 1));
 			if (ImGui::ArrowButton("##play", ImGuiDir_Right)) {
 				debugger.step();
@@ -36,21 +37,24 @@ namespace ps1g {
 
 			ImGui::Text("Execute 10 Instructions");
 
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0.8f, 1));
-			if (ImGui::ArrowButton("##resume", ImGuiDir_Right)) {
-				debugger.resume();
-				if (this->setStatusMessage) {
-					std::string message = "Breakpoint Reached";
-					std::array<float, 4> color = { 0.8f, 0.0f, 0.0f, 1.0f };
-					this->setStatusMessage(message, color);
+			if (!debugger.isResumed()) {
+				if (ImGui::ArrowButton("##resume", ImGuiDir_Right)) {
+					debugger.resume();
 				}
-			}  ImGui::SameLine();
-			ImGui::PopStyleColor();
+				ImGui::SameLine();
+				ImGui::Text("Resume Execution");
+			}
+			else {
+				if (PauseButton("DebuggerPause")) {
+					debugger.stop();
+				}
+				ImGui::SameLine();
+				ImGui::Text("Pause Execution");
+			}
 
-			ImGui::Text("Resume Execution");
 		}
 
-		if (ImGui::CollapsingHeader("Cpu Overview")) {
+		if (ImGui::CollapsingHeader("Cpu Overview", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SeparatorText("Special Registers");
 			ImGuiTableFlags tflags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX;
 			if (ImGui::BeginTable("PC", 2,  tflags)) {
@@ -150,6 +154,48 @@ namespace ps1g {
 
 				ImGui::EndTable();
 			}
+		}
+
+		if (ImGui::CollapsingHeader("Cpu Coprocessor 0 Registers")) {
+			ImGuiTableFlags tflags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX;
+			if (ImGui::BeginTable("Coprocessor 0 Registers", 2, tflags)) {
+				ImGui::TableSetupColumn("Register", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableHeadersRow();
+			}
+
+			// TODO: ADD REST OF REGISTER LATER
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("%s", this->cop0_register_names_[MIPSR3000A::CP0::SR - 12]);
+			ImGui::TableSetColumnIndex(1);
+
+			for (int i = 31; i >= 0; i--) {
+				bool important = i < 6 || i == 16 || i == 22;
+				uint32_t value = debugger.readCp0(MIPSR3000A::CP0::SR);
+				DrawInteractiveBit("SRBIT", value, i, important, this->cop0_system_register_description_[i]);
+				if (i % 8 == 0 && i > 0) ImGui::SameLine(0, 10.0f);
+			}
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("%s", this->cop0_register_names_[MIPSR3000A::CP0::Cause - 12]);
+			ImGui::TableSetColumnIndex(1);
+
+			for (int i = 31; i >= 0; i--) {
+				bool important = (i > 1 && i < 7) || (i > 7 && i < 16) || i == 28 || i == 29 || i == 31;
+				uint32_t value = debugger.readCp0(MIPSR3000A::CP0::Cause);
+				DrawInteractiveBit("CBIT", value, i, important, this->cop0_cause_register_description_[i]);
+				if (i % 8 == 0 && i > 0) ImGui::SameLine(0, 10.0f);
+			}
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("%s", this->cop0_register_names_[MIPSR3000A::CP0::EPC - 12]);
+			ImGui::TableSetColumnIndex(1);
+			ImGui::Text("0x%08X", debugger.readCp0(MIPSR3000A::CP0::EPC));
+
+			ImGui::EndTable();
 		}
 
 		if (ImGui::CollapsingHeader("Cpu General Purpose Registers")) {

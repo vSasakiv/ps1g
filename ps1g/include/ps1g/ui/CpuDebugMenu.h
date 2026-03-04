@@ -47,5 +47,84 @@ namespace ps1g {
 			"fp   (r30)",
 			"ra   (r31)"
 		};
+
+		static constexpr std::array<const char*, 3> cop0_register_names_ = {
+			"System Status (r12)",
+			"Cause (r13)",
+			"Exception PC (r14)",
+		};
+
+		static constexpr std::array<const char*, 32> cop0_system_register_description_ = {
+			"Current Interrupt Enable",
+			"Current Kernel/User Mode",
+			"Previous Interrupt Disable",
+			"Previous Kernel/User Mode",
+			"Old Interrupt Disable",
+			"Old Kernel/User Mode",
+			"Not Used",
+			"Not Used",
+			"8bit Interrupt mask field",
+			"8bit Interrupt mask field",
+			"8bit Interrupt mask field",
+			"8bit Interrupt mask field",
+			"8bit Interrupt mask field",
+			"8bit Interrupt mask field",
+			"8bit Interrupt mask field",
+			"8bit Interrupt mask field",
+			"Isolate Cache",
+			"Swapped Cache Mode",
+			"Cache Parity as 0",
+			"Result of last Load with D-cache Isolated",
+			"Cache parity Error",
+			"TLB Shutdown",
+			"Boot exception vector",
+			"Not Used",
+			"Not Used",
+			"Reverse Endianess",
+			"Not Used",
+			"Not Used",
+			"COP0 enable",
+			"COP1 enable",
+			"COP2 enable",
+			"COP3 enable",
+		};
+
+		static constexpr std::array<const char*, 32> cop0_cause_register_description_ = {
+			"Not Used",
+			"Not Used",
+			"Exception Occoured",
+			"Exception Occoured",
+			"Exception Occoured",
+			"Exception Occoured",
+			"Exception Occoured",
+			"Not Used",
+			"Interrupt Pending Field",
+			"Interrupt Pending Field",
+			"Interrupt Pending Field",
+			"Interrupt Pending Field",
+			"Interrupt Pending Field",
+			"Interrupt Pending Field",
+			"Interrupt Pending Field",
+			"Interrupt Pending Field",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"Not Used",
+			"COP Opcode",
+			"COP Opcode",
+			"Not Used",
+			"Branch Delay"
+		};
+
+
+
 	};
 }

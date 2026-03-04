@@ -1,17 +1,24 @@
 #include "ps1g/MIPSR3000A.h"
 #include "ps1g/Bus.h"
 #include "ps1g/utils/arith.h"
+#include "ps1g/ExceptionType.h"
+
+#include <format>
 
 namespace ps1g {
 
 	MIPSR3000A::MIPSR3000A() {
 		this->pc_ = 0xbfc00000;
 		this->next_pc_ = this->pc_ + 4;
+		this->current_pc_ = 0xbfc00000;
 		this->registers_.fill(0xFAAFFAAF); // Fill with random value for debugging
 		this->registers_[0] = 0; // Register 0 is always 0
 		this->cop0.reset();
 		this->hi_ = 0xFAAFFAAF;
 		this->lo_ = 0xFAAFFAAF;
+		this->branch_ = false;
+		this->delay_slot_ = false;
+		this->prev_branch_ = false;
 	}
 
 	MIPSR3000A::~MIPSR3000A() {}
@@ -19,31 +26,36 @@ namespace ps1g {
 	void MIPSR3000A::reset() {
 		this->pc_ = 0xbfc00000;
 		this->next_pc_ = 0xbfc00004;
+		this->current_pc_ = 0xbfc00000;
 		this->registers_.fill(0xFAAFFAAF); // Fill with random value for debugging
 		this->registers_[0] = 0; // Register 0 is always 0
 		this->cop0.reset();
 		this->load_delay_queue_.clear();
 		this->hi_ = 0xFAAFFAAF;
 		this->lo_ = 0xFAAFFAAF;
+		this->branch_ = false;
+		this->delay_slot_ = false;
+		this->prev_branch_ = false;
 	}
 
 	void MIPSR3000A::step(Bus& bus) {
 
-		uint32_t current_instruction_addr = this->pc_;
+		this->current_pc_ = this->pc_;
+		this->prev_branch_ = this->delay_slot_;
+
+		if (this->pc_ % 4 != 0) {
+			this->exception(ExceptionType::LoadAddressError);
+			return;
+		}
 
 		Instruction instruction(bus.readU32(this->pc_));
+
+		this->delay_slot_ = this->branch_;
+		this->branch_ = false;
 
 		// default + 4
 		this->pc_ = this->next_pc_;
 		this->next_pc_ += 4;
-
-		std::cout << "Executing instruction: "
-			<< std::hex
-			<< std::hex
-			<< std::setfill('0')
-			<< std::setw(8)
-			<< instruction.instruction_raw << std::dec << std::endl;
-		
 
 		if (instruction.getPrimaryOpcode() != 0) {
 			switch (instruction.getPrimaryOpcode()) {
@@ -57,28 +69,28 @@ namespace ps1g {
 				switch (branch_type) {
 				// BLTZ Reg[rs] < 0 then pc = pc + 4 + (imm16signed << 2)
 				case 0x00: {
-					if (((int32_t)this->readReg(rs)) < 0)
-						this->next_pc_ = this->pc_ + (imm16signed << 2);
+					if (static_cast<int32_t>(this->readReg(rs)) < 0)
+						this->branch(this->pc_ + (imm16signed << 2));
 					break;
 				}
 				// BGEZ Reg[rs] >= 0 then pc = pc + 4 + (imm16signed << 2)
 				case 0x01: {
-					if (((int32_t)this->readReg(rs)) >= 0)
-						this->next_pc_ = this->pc_ + (imm16signed << 2);
+					if (static_cast<int32_t>(this->readReg(rs)) >= 0)
+						this->branch(this->pc_ + (imm16signed << 2));
 					break;
 				}
 				// BLTZAL ra = pc + 4 ; Reg[rs] < 0 then pc = pc + 4 + (imm16signed << 2)
 				case 0x10: {
 					this->writeReg(31, this->pc_ + 4);
-					if (((int32_t)this->readReg(rs)) < 0)
-						this->next_pc_ = this->pc_ + (imm16signed << 2);
+					if (static_cast<int32_t>(this->readReg(rs)) < 0)
+						this->branch(this->pc_ + (imm16signed << 2));
 					break;
 				}
 				// BGEZAL ra = pc + 4 ; Reg[rs] >= 0 then pc = pc + 4 + (imm16signed << 2)
 				case 0x11: {
 					this->writeReg(31, this->pc_ + 4);
-					if (((int32_t)this->readReg(rs)) >= 0)
-						this->next_pc_ = this->pc_ + (imm16signed << 2);
+					if (static_cast<int32_t>(this->readReg(rs)) >= 0)
+						this->branch(this->pc_ + (imm16signed << 2));
 					break;
 				}
 				default: {
@@ -92,8 +104,7 @@ namespace ps1g {
 			// J -> pc = (pc & 0xF0000000) + (imm26 << 2)
 			case 0x02: {
 				uint32_t imm26 = instruction.getImm26();
-
-				this->next_pc_ = (this->pc_ & 0xF0000000) | (imm26 << 2);
+				this->branch((this->pc_ & 0xF0000000) | (imm26 << 2));
 				break;
 			}
 
@@ -102,7 +113,7 @@ namespace ps1g {
 				uint32_t imm26 = instruction.getImm26();
 
 				this->writeReg(31, this->pc_ + 4);
-				this->next_pc_ = (this->pc_ & 0xF0000000) | (imm26 << 2);
+				this->branch((this->pc_ & 0xF0000000) | (imm26 << 2));
 				break;
 			}
 
@@ -113,7 +124,7 @@ namespace ps1g {
 				uint32_t imm16signed = instruction.getImm16Signed();
 
 				if (this->readReg(rt) == this->readReg(rs))
-					this->next_pc_ = this->pc_ + (imm16signed << 2);
+					this->branch(this->pc_ + (imm16signed << 2));
 				break;
 			}
 
@@ -124,7 +135,7 @@ namespace ps1g {
 				uint32_t imm16signed = instruction.getImm16Signed();
 
 				if (this->readReg(rt) != this->readReg(rs))
-					this->next_pc_ = this->pc_ + (imm16signed << 2);
+					this->branch(this->pc_ + (imm16signed << 2));
 				break;
 			}
 
@@ -133,8 +144,8 @@ namespace ps1g {
 				uint32_t rs = instruction.getRs();
 				uint32_t imm16signed = instruction.getImm16Signed();
 
-				if (((int32_t)this->readReg(rs)) <= 0)
-					this->next_pc_ = this->pc_ + (imm16signed << 2);
+				if (static_cast<int32_t>(this->readReg(rs)) <= 0)
+					this->branch(this->pc_ + (imm16signed << 2));
 				break;
 			}
 
@@ -143,8 +154,8 @@ namespace ps1g {
 				uint32_t rs = instruction.getRs();
 				uint32_t imm16signed = instruction.getImm16Signed();
 
-				if (((int32_t)this->readReg(rs)) > 0)
-					this->next_pc_ = this->pc_ + (imm16signed << 2);
+				if (static_cast<int32_t>(this->readReg(rs)) > 0)
+					this->branch(this->pc_ + (imm16signed << 2));
 				break;
 			}
 
@@ -154,8 +165,8 @@ namespace ps1g {
 				uint32_t rs = instruction.getRs();
 				uint32_t imm16signed = instruction.getImm16Signed();
 
-				if (add_signed_overflow((int32_t)this->readReg(rs), (int32_t)imm16signed))
-					throw std::runtime_error("Signed overflow exception not yet implemented");
+				if (add_signed_overflow(static_cast<int32_t>(this->readReg(rs)), static_cast<int32_t>(imm16signed)))
+					this->exception(ExceptionType::ArithmeticOverflow);
 				else
 					this->writeReg(rt, this->readReg(rs) + imm16signed);
 				break;
@@ -178,7 +189,7 @@ namespace ps1g {
 				uint32_t rs = instruction.getRs();
 				uint32_t imm16signed = instruction.getImm16Signed();
 
-				this->writeReg(rt, ((int32_t)this->readReg(rs)) < ((int32_t)imm16signed));
+				this->writeReg(rt, static_cast<int32_t>(this->readReg(rs)) <  static_cast<int32_t>(imm16signed));
 				break;
 			}
 
@@ -249,7 +260,7 @@ namespace ps1g {
 					uint32_t imm16signed = instruction.getImm16Signed();
 
 					uint32_t addr = imm16signed + this->readReg(rs);
-					this->load_delay_queue_.push_back(LoadDelay(rt, (int8_t)bus.readU8(addr), 1));
+					this->load_delay_queue_.push_back(LoadDelay(rt, static_cast<int8_t>(bus.readU8(addr)), 1));
 				}
 				break;
 			}
@@ -266,7 +277,10 @@ namespace ps1g {
 					uint32_t imm16signed = instruction.getImm16Signed();
 
 					uint32_t addr = imm16signed + this->readReg(rs);
-					this->load_delay_queue_.push_back(LoadDelay(rt, bus.readU32(addr), 1));
+					if (addr % 4 == 0)
+						this->load_delay_queue_.push_back(LoadDelay(rt, bus.readU32(addr), 1));
+					else
+						this->exception(ExceptionType::LoadAddressError);
 				}
 				break;
 			}
@@ -300,7 +314,7 @@ namespace ps1g {
 					uint32_t imm16signed = instruction.getImm16Signed();
 
 					uint32_t addr = imm16signed + this->readReg(rs);
-					bus.writeU8(imm16signed + this->readReg(rs), (uint8_t)this->readReg(rt));
+					bus.writeU8(imm16signed + this->readReg(rs), static_cast<uint8_t>(this->readReg(rt)));
 				}
 				break;
 			}
@@ -317,7 +331,10 @@ namespace ps1g {
 					uint32_t imm16signed = instruction.getImm16Signed();
 
 					uint32_t addr = imm16signed + this->readReg(rs);
-					bus.writeU16(imm16signed + this->readReg(rs), (uint16_t)this->readReg(rt));
+					if (addr % 2 == 0)
+						bus.writeU16(imm16signed + this->readReg(rs), static_cast<uint16_t>(this->readReg(rt)));
+					else
+						this->exception(ExceptionType::StoreAddressError);
 				}
 				break;
 			}
@@ -334,7 +351,10 @@ namespace ps1g {
 					uint32_t imm16signed = instruction.getImm16Signed();
 
 					uint32_t addr = imm16signed + this->readReg(rs);
-					bus.writeU32(imm16signed + this->readReg(rs), this->readReg(rt));
+					if (addr % 4 == 0)
+						bus.writeU32(imm16signed + this->readReg(rs), this->readReg(rt));
+					else
+						this->exception(ExceptionType::StoreAddressError);
 				}
 				break;
 			}
@@ -377,14 +397,14 @@ namespace ps1g {
 				uint32_t rd = instruction.getRd();
 				uint32_t imm5 = instruction.getImm5();
 
-				this->writeReg(rd, ((int32_t)this->readReg(rt)) >> imm5);
+				this->writeReg(rd, static_cast<int32_t>(this->readReg(rt)) >> imm5);
 				break;
 			}
 
 			// JR -> pc = Reg[rs]
 			case 0x08: {
 				uint32_t rs = instruction.getRs();
-				this->next_pc_ = this->readReg(rs);
+				this->branch(this->readReg(rs));
 				break;
 			}
 
@@ -394,7 +414,13 @@ namespace ps1g {
 				uint32_t rd = instruction.getRd();
 
 				this->writeReg(rd, this->pc_ + 4);
-				this->next_pc_ = this->readReg(rs);
+				this->branch(this->readReg(rs));
+				break;
+			}
+
+			// Syscall -> Generate Exception
+			case 0x0C: {
+				this->exception(ExceptionType::Syscall);
 				break;
 			}
 
@@ -480,8 +506,8 @@ namespace ps1g {
 				uint32_t rd = instruction.getRd();
 				uint32_t rs = instruction.getRs();
 
-				if (add_signed_overflow((int32_t)this->readReg(rs), (int32_t)this->readReg(rt)))
-					throw std::runtime_error("Signed overflow exception not yet implemented");
+				if (add_signed_overflow(static_cast<int32_t>(this->readReg(rs)), static_cast<int32_t>(this->readReg(rt))))
+					this->exception(ExceptionType::ArithmeticOverflow);
 				else
 					this->writeReg(rd, this->readReg(rt) + this->readReg(rs));
 
@@ -554,7 +580,7 @@ namespace ps1g {
 				uint32_t rd = instruction.getRd();
 				uint32_t rs = instruction.getRs();
 
-				this->writeReg(rd, ((int32_t)this->readReg(rs)) < ((int32_t)this->readReg(rt)));
+				this->writeReg(rd, static_cast<int32_t>(this->readReg(rs)) < static_cast<int32_t>(this->readReg(rt)));
 				break;
 			}
 
@@ -578,11 +604,7 @@ namespace ps1g {
 				break;
 			}
 		}
-
-
 		this->evaluateLoadDelays();
-
-		std::cout << "===========================" << std::endl;
 	}
 
 	void MIPSR3000A::cop0Execute(Instruction& instruction)
@@ -593,63 +615,30 @@ namespace ps1g {
 		case 0x00: {
 			uint32_t cpu_rt = instruction.getRt();
 			uint32_t cop0_rd = instruction.getRd();
-
-			switch (cop0_rd) {
-			case 3:
-			case 5:
-			case 6:
-			case 7:
-			case 9:
-			case 11: {
-				std::cout << "Reads from Debug registers not implemented" << cop0_rd << std::dec << std::endl;
-				break;
-			}
-
-			case 12:
-				this->load_delay_queue_.push_back(LoadDelay(cpu_rt, cop0.system_status, 1));
-				break;
-
-			case 13:
-				std::cout << "Reads to Cause register not implemented" << cop0_rd << std::dec << std::endl;
-				break;
-
-			default:
-				std::cout << "COP0 register not implemented/existent " << cop0_rd << std::dec << std::endl;
-				throw std::runtime_error("Invalid COP0 register");
-				break;
-			}
+			this->load_delay_queue_.push_back(LoadDelay(cpu_rt, this->readCP0(cop0_rd), 1));
 			break;
 		}
 		// MTC0 -> Cop0[rd] = Reg[rt]
 		case 0x04: {
 			uint32_t cpu_rt = instruction.getRt();
 			uint32_t cop0_rd = instruction.getRd();
+			this->writeCP0(cop0_rd, this->readReg(cpu_rt));
+			break;
+		}
 
-			switch (cop0_rd) {
-			case 3:
-			case 5:
-			case 6:
-			case 7:
-			case 9:
-			case 11: {
-				std::cout << "Writes to Debug registers not implemented" << cop0_rd << std::dec << std::endl;
-				break;
+		// RFE -> Return from exception, restore previous mode from SR
+		case 0x10: {
+			if (instruction.getSecondaryOpcode() != 0x10) {
+				std::cout << "COP0 operation illegal" << std::hex << cop_operation << std::dec << std::endl;
+				throw std::runtime_error("Invalid COP0 operation");
 			}
 
-			case 12:
-				this->cop0.system_status = this->readReg(cpu_rt);
-				break;
-
-			case 13:
-				std::cout << "Writes to Cause register not implemented" << cop0_rd << std::dec << std::endl;
-				break;
-
-			default:
-				std::cout << "COP0 register not implemented/existent " << cop0_rd << std::dec << std::endl;
-				throw std::runtime_error("Invalid COP0 register");
-				break;
-			}
-
+			// Pop processor mode
+			uint32_t sr = this->readCP0(MIPSR3000A::CP0::SR);
+			uint32_t mode = sr & 0x3F;
+			sr = sr & (~0x3F); // zeroes 6 last bits
+			sr |= (mode >> 2) & 0x3F; // sets last 6 bits
+			this->writeCP0(MIPSR3000A::CP0::SR, sr);
 			break;
 		}
 
@@ -658,7 +647,99 @@ namespace ps1g {
 			throw std::runtime_error("Invalid COP0 operation");
 			break;
 		}
+	}
 
+	void MIPSR3000A::exception(ExceptionType type) {
+		uint32_t vector_addr;
+
+		uint32_t sr = this->readCP0(MIPSR3000A::CP0::SR);
+		// BEV bit to define where to jump
+		if (((sr >> 22)&0x1) == 1) {
+			vector_addr = 0xbfc00180; // Rom vector
+		}
+		else {
+			vector_addr = 0x80000080; // Ram vector
+		}
+
+		// Shift lower 6 bits of SR to the left - update mode and its previous values
+		uint32_t mode = sr & 0x3F;
+		sr = sr & (~0x3F); // zeroes 6 last bits
+		sr |= (mode << 2) & 0x3F; // sets last 6 bits
+		this->writeCP0(MIPSR3000A::CP0::SR, sr);
+
+		// update cause register
+		this->writeCP0(MIPSR3000A::CP0::Cause, static_cast<uint32_t>(type) << 2);
+
+		// Exception return PC
+		if (this->delay_slot_) {
+			this->writeCP0(MIPSR3000A::CP0::EPC, this->current_pc_ - 4);
+			this->writeCP0(MIPSR3000A::CP0::Cause, this->readCP0(MIPSR3000A::CP0::Cause) | 0x80000000); // Set BD bit
+		}
+		else {
+			this->writeCP0(MIPSR3000A::CP0::EPC, this->current_pc_);
+		}
+
+		this->pc_ = vector_addr;
+		this->next_pc_ = vector_addr + 4;
+	}
+
+	void MIPSR3000A::writeCP0(uint32_t reg, uint32_t value) {
+		switch (reg) {
+		case 3:
+		case 5:
+		case 6:
+		case 7:
+		case 9:
+		case 11: {
+			std::cout << "Writes to Debug registers not implemented" << reg << std::dec << std::endl;
+			break;
+		}
+		case 12:
+			this->cop0.system_status = value;
+			break;
+		case 13:
+			this->cop0.cause = value;
+			break;
+		case 14:
+			this->cop0.exception_pc = value;
+			break;
+		default:
+			std::cout << "COP0 register not implemented/existent " << reg << std::dec << std::endl;
+			throw std::runtime_error("Invalid COP0 register");
+			break;
+		}
+	}
+
+	uint32_t MIPSR3000A::readCP0(uint32_t reg) const {
+		switch (reg) {
+		case 3:
+		case 5:
+		case 6:
+		case 7:
+		case 9:
+		case 11: {
+			std::cout << "Reads from Debug registers not implemented" << reg << std::dec << std::endl;
+			break;
+		}
+		case 12:
+			return this->cop0.system_status;
+			break;
+		case 13:
+			return this->cop0.cause;
+			break;
+		case 14:
+			return this->cop0.exception_pc;
+			break;
+		default:
+			std::cout << "COP0 register not implemented/existent " << reg << std::dec << std::endl;
+			throw std::runtime_error("Invalid COP0 register");
+			break;
+		}
+	}
+
+	void MIPSR3000A::branch(uint32_t address) {
+		this->next_pc_ = address;
+		this->branch_ = true;
 	}
 
 	void MIPSR3000A::evaluateLoadDelays() {
@@ -707,6 +788,14 @@ namespace ps1g {
 	}
 	uint32_t MIPSR3000A::readHi() {
 		return this->hi_;
+	}
+	
+	void MIPSR3000A::rollBack() {
+		this->next_pc_ = this->pc_;
+		this->pc_ = this->current_pc_;
+
+		this->branch_ = this->delay_slot_;
+		this->delay_slot_ = this->prev_branch_;
 	}
 
 }

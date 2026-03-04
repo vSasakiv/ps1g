@@ -2,19 +2,12 @@
 #include "ps1g/Bus.h"
 #include "ps1g/MIPSR3000A.h"
 #include "ps1g/Memory.h"
+#include "ps1g/utils/loglevel.h"
 
 namespace ps1g {
 
-	void Debugger::step() {
-		this->bus_.step();
-	}
-
-	void Debugger::reset() {
-		this->bus_.reset();
-	}
-
-	void Debugger::resume() {
-		for (;;) {
+	bool Debugger::step() {
+		try {
 			this->bus_.step();
 			uint32_t curr_effective_addr = this->bus_.getEffectiveAddress(this->readPc(), this->bus_.getMemoryRegion(this->readPc()));
 			uint32_t offset;
@@ -22,24 +15,60 @@ namespace ps1g {
 			if (this->bus_.isRamAddress(curr_effective_addr)) {
 				offset = curr_effective_addr;
 				if (this->ramBreakpoints_.find(offset) != this->ramBreakpoints_.end()) {
-					break;
+					this->stop();
+					return false;
 				}
-			} 
+			}
 			else if (this->bus_.isBiosAddress(curr_effective_addr)) {
 				offset = curr_effective_addr - kBiosOffset;
 				if (this->biosBreakpoints_.find(offset) != this->biosBreakpoints_.end()) {
-					break;
+					this->stop();
+					return false;
 				}
 			}
 			else {
 				std::cout << "not yet implemented" << std::endl;
-				continue;
+				this->stop();
+				return false;
 			}
 		}
+		catch (const std::runtime_error& e) {
+			this->last_message_ = e.what();
+			this->last_message_level_ = LogLevel::Error;
+			this->stop();
+			this->bus_.cpu()->rollBack();
+			return false;
+		}
+		return true;
+	}
+
+	void Debugger::reset() {
+		this->bus_.reset();
+	}
+
+	void Debugger::execute() {
+		if (this->is_resumed_)
+			for (int i = 0; i < 1000; i++)
+				if (!this->step())
+					break;
+	}
+
+	void Debugger::resume() {
+		this->is_resumed_ = true;
+	}
+
+	void Debugger::stop() {
+		this->is_resumed_ = false;
+	}
+
+	bool Debugger::isResumed() {
+		return this->is_resumed_;
 	}
 
 	void Debugger::loadBiosFromPath(const char* filepath) {
 		this->bus_.loadBiosfromFile(filepath);
+		this->last_message_ = "Bios Loaded Successfully";
+		this->last_message_level_ = LogLevel::Success;
 	}
 
 	uint32_t Debugger::readPc() {
@@ -64,6 +93,10 @@ namespace ps1g {
 
 	uint32_t Debugger::readLo() {
 		return this->bus_.cpu()->lo();
+	}
+
+	uint32_t Debugger::readCp0(uint32_t reg) const {
+		return this->bus_.cpu()->readCP0(reg);
 	}
 
 	std::array<uint32_t, 32>const& Debugger::readGeneralRegs() {
@@ -117,4 +150,13 @@ namespace ps1g {
 	std::set<uint32_t>& Debugger::getRamBreakpoints() {
 		return this->ramBreakpoints_;
 	}
+
+	std::string_view Debugger::getLastMessage() const { 
+		return this->last_message_; 
+	}
+
+	LogLevel Debugger::getLastMessageLevel() const { 
+		return this->last_message_level_; 
+	}
+
 }

@@ -2,6 +2,7 @@
 #include <string>
 #include <array>
 #include <functional>
+#include <imgui.h>
 
 struct GLFWwindow;
 
@@ -9,6 +10,8 @@ typedef char nfdchar_t;
 
 namespace ps1g {
 	class Debugger;
+	enum class LogLevel;
+
 	class MainMenuBar {
 	public:
 		bool enabled = true;
@@ -22,11 +25,13 @@ namespace ps1g {
 
 		void setStatusMessage(std::string& message) { this->status_message_ = message; };
 		void setStatusColor(std::array<float, 4>& color) { this->status_message_color_ = color; };
+		
 
 	private:
 		nfdchar_t* openFilePicker();
 		std::string status_message_;
 		std::array<float, 4> status_message_color_ = { 0.4f, 0.8f, 1.0f, 1.0f };
 		void menuOpenBios(Debugger& debugger);
+		ImVec4 getMessageColor(LogLevel level);
 	};
 }

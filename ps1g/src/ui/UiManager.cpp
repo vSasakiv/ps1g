@@ -64,6 +64,7 @@ namespace ps1g {
 	}
 
 	void UiManager::RenderUI(Debugger& debugger) {
+		debugger.execute();
 		ImGui::ShowDemoWindow();
 		this->main_menu_bar_.render(this->window_, debugger);
 		this->cpu_debug_menu_.render(debugger);

@@ -3,6 +3,8 @@
 #include <ps1g/MIPSR3000A.h>
 #include <ps1g/utils/mem.h>
 
+#include <format>
+
 namespace ps1g {
 
 	Bus::Bus() {
@@ -30,8 +32,7 @@ namespace ps1g {
 			std::cout << "Write to Expansion 2 not yet implemented" << std::endl;
 		}
 		else {
-			std::cout << "Unmapped address: " << std::hex << addr << std::dec << std::endl;
-			throw std::runtime_error("Write to unmapped address");
+			throw std::runtime_error(std::format("WRITEU8 Write to unmapped address: 0x{:08X}", addr));
 		}
 
 	}
@@ -44,6 +45,7 @@ namespace ps1g {
 		uint32_t effective_addr = this->getEffectiveAddress(addr, region);
 
 		if (Bus::isRamAddress(effective_addr)) {
+			throw std::runtime_error(std::format("WRITEU16 Write to unmapped address: 0x{:08X}", addr));
 			this->main_ram_.writeU16(effective_addr, data);
 		}
 		else if (Bus::isSPUAddress(effective_addr)) {
@@ -53,8 +55,7 @@ namespace ps1g {
 			std::cout << "Write to Timer Registers not yet implemented" << std::endl;
 		}
 		else {
-			std::cout << "Unmapped address: " << std::hex << addr << std::dec << std::endl;
-			throw std::runtime_error("Write to unmapped address");
+			throw std::runtime_error(std::format("WRITEU16 Write to unmapped address: 0x{:08X}", addr));
 		}
 
 	}
@@ -85,8 +86,7 @@ namespace ps1g {
 			std::cout << "Write to Interrupt Control not yet implemented" << std::endl;
 		}
 		else {
-			std::cout << "Unmapped address: " << std::hex << addr << std::dec << std::endl;
-			throw std::runtime_error("Write to unmapped address");
+			throw std::runtime_error(std::format("WRITEU32 Write to unmapped address: 0x{:08X}", addr));
 		}
 
 	}
@@ -106,8 +106,7 @@ namespace ps1g {
 			return 0xFF;
 		}
 		else {
-			std::cout << "Tried reading from unmapped address: " << std::hex << addr << std::dec << std::endl;
-			throw std::runtime_error("Read from unmapped address");
+			throw std::runtime_error(std::format("READU8 read from unmapped address: 0x{:08X}", addr));
 		}
 	}
 
@@ -123,8 +122,7 @@ namespace ps1g {
 			return this->main_ram_.readU16(effective_addr);
 		}
 		else {
-			std::cout << "Tried reading from unmapped address: " << std::hex << addr << std::dec << std::endl;
-			throw std::runtime_error("Read from unmapped address");
+			throw std::runtime_error(std::format("READU16 read from unmapped address: 0x{:08X}", addr));
 		}
 	}
 
@@ -156,8 +154,7 @@ namespace ps1g {
 			return 0;
 		}
 		else {
-			std::cout << "Tried reading from unmapped address: " << std::hex << addr << std::dec << std::endl;
-			throw std::runtime_error("Read from unmapped address");
+			throw std::runtime_error(std::format("READU32 read from unmapped address: 0x{:08X}", addr));
 		}
 	}
 

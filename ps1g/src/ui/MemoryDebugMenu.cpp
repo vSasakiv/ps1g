@@ -11,6 +11,12 @@
 #include <iostream>
 
 namespace ps1g {
+
+	int MemoryDebugMenu::selected_memory_type_ = 0;
+	uint32_t MemoryDebugMenu::base_offset_[] = {0x0, 0x0};
+	uint32_t MemoryDebugMenu::goto_address_[] = {0x0, 0x0};
+	bool MemoryDebugMenu::jump_table_[] = {false, false};
+
 	void MemoryDebugMenu::render(Debugger& debugger) const {
 		if (!enabled) return;
 
@@ -24,38 +30,32 @@ namespace ps1g {
 
 		ImGui::Begin("Memory Debug Menu");
 
-		// Memory selector 
-		const char* memory_types[] = {"BIOS", "RAM"};
-		static int selected = 0;
-
 		ImGui::Text("Memory Type:");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(300.0f);
-		if (ImGui::Combo("##Memory", &selected, memory_types, IM_ARRAYSIZE(memory_types))) {}
+
+		if (ImGui::Combo("##Memory", &this->selected_memory_type_, this->memory_type_names_, IM_ARRAYSIZE(this->memory_type_names_))) {}
 
 		// Base offset input
-		static uint32_t base_offset[] = { 0x0, 0x0 };
 		ImGui::Text("Base Offset:");
 		ImGui::SameLine();
 
 		ImGui::PushItemWidth(300.0f);
-		ImGui::InputScalar("##BaseOffset", ImGuiDataType_U32, &(base_offset[selected]), nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+		ImGui::InputScalar("##BaseOffset", ImGuiDataType_U32, &(this->base_offset_[this->selected_memory_type_]), nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
 		ImGui::SameLine();
 
 		ImGui::Dummy(ImVec2(10.0f, 0.0f));
 		ImGui::SameLine();
 
 		// goto input
-		static uint32_t goto_address[] = { 0x0, 0x0 };
 		ImGui::Text("Go to:");
 		ImGui::SameLine();
 
-		static bool jump_table[] = { false, false };
 		ImGui::PushItemWidth(300.0f);
-		ImGui::InputScalar("##GoToAddress", ImGuiDataType_U32, &(goto_address[selected]), nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+		ImGui::InputScalar("##GoToAddress", ImGuiDataType_U32, &(this->goto_address_[this->selected_memory_type_]), nullptr, nullptr, "%08X", ImGuiInputTextFlags_CharsHexadecimal);
 		ImGui::SameLine();
 		if (ImGui::ArrowButton("##goto", ImGuiDir_Right)) {
-			jump_table[selected] = true;
+			this->jump_table_[this->selected_memory_type_] = true;
 		};
 
 		ImGui::Dummy(ImVec2(0.0f, kVerticalPadding/2));
@@ -80,14 +80,16 @@ namespace ps1g {
 			ImGui::TableSetupColumn("Disassembly", ImGuiTableColumnFlags_WidthStretch);
 
 			// BIOS
-			if (selected == 0) {
+			if (this->selected_memory_type_ == 0) {
 				Memory<kBiosSize>const& mem = debugger.getBios();
 				ImGuiListClipper clipper;
 				float row_height = ImGui::GetTextLineHeight() + kVerticalPadding * 2;
 
-				if (jump_table[selected]) {
-					ImGui::SetScrollY(((goto_address[selected] - base_offset[selected]) / 4) * row_height);
-					jump_table[selected] = false;
+				if (this->jump_table_[this->selected_memory_type_]) {
+					ImGui::SetScrollY((
+						(this->goto_address_[this->selected_memory_type_] - this->base_offset_[this->selected_memory_type_]) / 4)
+						* row_height);
+					this->jump_table_[this->selected_memory_type_] = false;
 				}
 
 				clipper.Begin(kBiosSize / 4);
@@ -117,7 +119,7 @@ namespace ps1g {
 							ImGui::GetWindowDrawList()->AddCircleFilled(circle_pos, 10.0f, IM_COL32(200, 30, 20, 255));
 						}
 						ImGui::SameLine(25.0f);
-						ImGui::Text("  0x%08X  ", addr + base_offset[selected]);
+						ImGui::Text("  0x%08X  ", addr + this->base_offset_[this->selected_memory_type_]);
 
 						ImGui::TableSetColumnIndex(1);
 						ImGui::Text(" %02X %02X %02X %02X ", mem.readU8(addr), mem.readU8(addr+1), mem.readU8(addr+2), mem.readU8(addr+3));
@@ -126,19 +128,21 @@ namespace ps1g {
 						ImGui::Text("  0x%08X  ", contents);
 
 						ImGui::TableSetColumnIndex(3);
-						ImGui::Text(disassemble(contents, addr + base_offset[selected]).c_str());
+						ImGui::Text(disassemble(contents, addr + this->base_offset_[this->selected_memory_type_]).c_str());
 					}
 				}
 
 			}
-			else if (selected == 1) {
+			else if (this->selected_memory_type_ == 1) {
 				Memory<kMainRamSize>const& mem = debugger.getMainRam();
 				ImGuiListClipper clipper;
 				float row_height = ImGui::GetTextLineHeight() + kVerticalPadding * 2;
 
-				if (jump_table[selected]) {
-					ImGui::SetScrollY(((goto_address[selected] - base_offset[selected]) / 4) * row_height);
-					jump_table[selected] = false;
+				if (this->jump_table_[this->selected_memory_type_]) {
+					ImGui::SetScrollY((
+						(this->goto_address_[this->selected_memory_type_] - this->base_offset_[this->selected_memory_type_]) / 4)
+						* row_height);
+					this->jump_table_[this->selected_memory_type_] = false;
 				}
 
 				clipper.Begin(kMainRamSize / 4);
@@ -169,7 +173,7 @@ namespace ps1g {
 						}
 
 						ImGui::SameLine(25.0f);
-						ImGui::Text("  0x%08X  ", addr + base_offset[selected]);
+						ImGui::Text("  0x%08X  ", addr + this->base_offset_[this->selected_memory_type_]);
 
 						ImGui::TableSetColumnIndex(1);
 						ImGui::Text(" %02X %02X %02X %02X ", mem.readU8(addr), mem.readU8(addr+1), mem.readU8(addr+2), mem.readU8(addr+3));
@@ -178,7 +182,7 @@ namespace ps1g {
 						ImGui::Text("  0x%08X  ", contents);
 
 						ImGui::TableSetColumnIndex(3);
-						ImGui::Text(disassemble(contents, addr + base_offset[selected]).c_str());
+						ImGui::Text(disassemble(contents, addr + this->base_offset_[this->selected_memory_type_]).c_str());
 					}
 				}
 			}
@@ -190,7 +194,7 @@ namespace ps1g {
 		ImGui::SameLine();
 		ImGui::BeginChild("RightMemory", ImVec2(half_width, 0), ImGuiChildFlags_None);
 
-		if (ImGui::CollapsingHeader("Breakpoints")) {
+		if (ImGui::CollapsingHeader("Breakpoints", ImGuiTreeNodeFlags_DefaultOpen)) {
 
 			if (ImGui::Button("Remove All")) {
 				debugger.removeAllBreakpoints();
@@ -212,9 +216,9 @@ namespace ps1g {
 
 					char id[32]; sprintf(id, "##bios_%08X", addr);
 					if (ImGui::Selectable(id, false, ImGuiSelectableFlags_SpanAllColumns)) {
-						selected = 0;
-						goto_address[0] = addr + base_offset[0];
-						jump_table[0] = true;
+						this->selected_memory_type_ = 0;
+						this->goto_address_[0] = addr + this->base_offset_[0];
+						this->jump_table_[0] = true;
 					}
 					if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 						remove = true;
@@ -224,9 +228,9 @@ namespace ps1g {
 					ImGui::SameLine();
 					ImGui::Text("BIOS");
 					ImGui::TableSetColumnIndex(1);
-					ImGui::Text("  0x%08X  ", addr + base_offset[0]);
+					ImGui::Text("  0x%08X  ", addr + this->base_offset_[0]);
 					ImGui::TableSetColumnIndex(2);
-					ImGui::Text(disassemble(bios.readU32(addr), addr + base_offset[0]).c_str());
+					ImGui::Text(disassemble(bios.readU32(addr), addr + this->base_offset_[0]).c_str());
 				}
 				if (remove) {
 					debugger.removeBiosBreakpoint(addr_to_remove);
@@ -240,9 +244,9 @@ namespace ps1g {
 
 					char id[32]; sprintf(id, "##ram_%08X", addr);
 					if (ImGui::Selectable(id, false, ImGuiSelectableFlags_SpanAllColumns)) {
-						selected = 1;
-						goto_address[1] = addr + base_offset[1];
-						jump_table[1] = true;
+						this->selected_memory_type_ = 1;
+						this->goto_address_[1] = addr + this->base_offset_[1];
+						this->jump_table_[1] = true;
 					}
 					if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
 						remove = true;
@@ -252,9 +256,9 @@ namespace ps1g {
 					ImGui::SameLine();
 					ImGui::Text("RAM");
 					ImGui::TableSetColumnIndex(1);
-					ImGui::Text("  0x%08X  ", addr + base_offset[1]);
+					ImGui::Text("  0x%08X  ", addr + this->base_offset_[1]);
 					ImGui::TableSetColumnIndex(2);
-					ImGui::Text(disassemble(ram.readU32(addr), addr + base_offset[1]).c_str());
+					ImGui::Text(disassemble(ram.readU32(addr), addr + this->base_offset_[1]).c_str());
 				}
 				if (remove) {
 					debugger.removeRamBreakpoint(addr_to_remove);

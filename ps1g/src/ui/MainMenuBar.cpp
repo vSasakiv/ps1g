@@ -1,6 +1,7 @@
 #include "ps1g/ui/MainMenuBar.h"
 #include "ps1g/Bus.h"
 #include "ps1g/Debugger.h"
+#include "ps1g/utils/loglevel.h"
 
 #include <nfd.hpp>
 #include <iostream>
@@ -13,6 +14,7 @@
 namespace ps1g {
 	void MainMenuBar::render(GLFWwindow* window, Debugger& debugger) {
 		if (!enabled) return;
+		static float copy_timer;
 
 		if (ImGui::BeginMainMenuBar()) {
 			if (ImGui::BeginMenu("File")) {
@@ -47,13 +49,33 @@ namespace ps1g {
 		{
 			ImGui::AlignTextToFramePadding();
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX());
-			ImGui::TextColored(
-				ImVec4(
-					this->status_message_color_[0],
-					this->status_message_color_[1],
-					this->status_message_color_[2],
-					this->status_message_color_[3]), "%s", status_message_.c_str());
+			std::string message = std::string(debugger.getLastMessage());
+
+			ImGui::TextColored(this->getMessageColor(debugger.getLastMessageLevel()), "%s", message.c_str());
+			if (ImGui::IsItemClicked()) {
+				ImGui::SetClipboardText(message.c_str());
+				copy_timer = 0.5f;
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Click to copy message", message.c_str());
+			}
+
 			ImGui::End();
+		}
+
+		if (copy_timer > 0.0f) {
+			ImGui::SetNextWindowPos(ImGui::GetMousePos(), ImGuiCond_Always, ImVec2(0.5f, 1.5f));
+			
+			ImGui::Begin("##copy_popup", nullptr, 
+				ImGuiWindowFlags_Tooltip | 
+				ImGuiWindowFlags_NoInputs | 
+				ImGuiWindowFlags_NoTitleBar | 
+				ImGuiWindowFlags_AlwaysAutoResize);
+				
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Copied!");
+			ImGui::End();
+
+			copy_timer -= ImGui::GetIO().DeltaTime;
 		}
 
 	}
@@ -77,6 +99,17 @@ namespace ps1g {
 		
 		NFD_Quit();
 		return out_path;
+	}
+
+	ImVec4 MainMenuBar::getMessageColor(LogLevel level) {
+		switch (level) {
+			case LogLevel::Trace: return ImVec4(0.8f, 0.8f, 0.8f, 1.0f);
+			case LogLevel::Info: return ImVec4(0.1f, 0.1f, 0.5f, 1.0f);
+			case LogLevel::Warning: return ImVec4(0.6f, 0.6f, 0.1f, 1.0f);
+			case LogLevel::Error: return ImVec4(0.8f, 0.1f, 0.1f, 1.0f);
+			case LogLevel::Success: return ImVec4(0.1f, 0.8f, 0.1f, 1.0f);
+			default: return ImVec4(0.8f, 0.8f, 0.8f, 1.0f);
+		}
 	}
 
 	void MainMenuBar::menuOpenBios(Debugger& debugger) {
